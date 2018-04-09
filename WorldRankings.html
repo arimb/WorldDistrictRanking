@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+	<table><tbody id="the"><tr><td>#</td><td>Team Number</td><td>Average DP</td></tr></tbody></table>
+
+	<script>
+		var n = 10;
+		var i=0;
+		var interval;
+
+		$(document).ready(function(){
+			interval = setInterval(myTimer, 5000);
+			myTimer();
+		})
+		
+		function myTimer(){
+			console.log(n);
+			var auth = {
+				"accept": "application/json",
+				"X-TBA-Auth-Key": "gl4GXuoqG8anLUrLo356LIeeQZk15cfSoXF72YT3mYkI38cCoAmReoCSSF4XWccQ"
+			}
+			$.getJSON("https://www.thebluealliance.com/api/v3/teams/2018/"+n, auth, function(data){
+				console.log(data);
+				$.each(data, function(index, team){
+					$.getJSON("https://www.thebluealliance.com/api/v3/team/".concat(team["key"],"/events/2018/statuses"), auth, function(events){
+						i++;
+						var DPs = 0;
+						var num_events = 0;
+						$.each(events, function(index, event){
+							try{
+								var DP = Math.ceil(erfINV((event["qual"]["num_teams"]-2*event["qual"]["ranking"]["rank"]+2)/(1.07*event["qual"]["num_teams"]))*7.676+12);
+								if(event["alliance"]!=null){
+									DP += (event["alliance"]["pick"]<2 ? 17-event["alliance"]["number"] : event["alliance"]["number"]) + (event["playoff"]["level"]=="qf" ? 0 : (event["playoff"]["level"]=="sf" ? 10 : (event["playoff"]["status"]=="won" ? 30 : 20)));
+								}
+								DPs += DP;
+								num_events++;
+							}catch(err){}
+						});
+						DPs /= num_events;
+						$("tbody#the").append("<tr><td>" + i + "</td><td>" + team["team_number"] + "</td><td>" + DPs + "</td></tr>");
+					});
+				});
+			});
+			n++;
+			if(n>10)
+				clearInterval(interval);
+		}
+
+
+		function erfINV( _x ){
+		    var _a = ((8*(Math.PI - 3)) / ((3*Math.PI)*(4 - Math.PI)));
+		    var signX = ((_x < 0) ? -1.0 : 1.0 );
+
+		    var oneMinusXsquared = 1.0 - (_x * _x);
+		    var LNof1minusXsqrd  = Math.log( oneMinusXsquared );
+		    var PI_times_a       = Math.PI * _a ;
+		
+
+		    var firstTerm  = Math.pow(((2.0 / PI_times_a) + (LNof1minusXsqrd / 2.0)), 2);
+		    var secondTerm = (LNof1minusXsqrd / _a);
+		    var thirdTerm  = ((2 / PI_times_a) + (LNof1minusXsqrd / 2.0));
+
+		    var primaryComp = Math.sqrt( Math.sqrt( firstTerm - secondTerm ) - thirdTerm );
+
+		    var scaled_R = signX * primaryComp ;
+		    return scaled_R ;
+		}
+		
+	</script>
+</body>
+</html>
